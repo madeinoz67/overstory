@@ -105,6 +105,13 @@ export interface OverstoryConfig {
 		printCommand?: string;
 		/** Pi runtime configuration for model alias expansion. */
 		pi?: PiRuntimeConfig;
+		/**
+		 * Delay in milliseconds between creating a tmux session and polling
+		 * for TUI readiness. Gives slow shells (oh-my-zsh, starship, etc.)
+		 * time to finish initializing before the agent command starts.
+		 * Default: 0 (no delay).
+		 */
+		shellInitDelayMs?: number;
 	};
 }
 

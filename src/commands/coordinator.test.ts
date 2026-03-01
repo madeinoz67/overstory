@@ -656,6 +656,31 @@ describe("startCoordinator", () => {
 		expect(newSession?.id).not.toBe("session-dead-coordinator");
 	});
 
+	test("respects shellInitDelayMs config before polling TUI readiness", async () => {
+		// Set shellInitDelayMs in config via config.yaml
+		const configPath = join(tempDir, ".overstory", "config.yaml");
+		const yamlContent = "runtime:\n  shellInitDelayMs: 500\n";
+		await Bun.write(configPath, yamlContent);
+
+		const { deps } = makeDeps();
+
+		const sleepCalls: number[] = [];
+		const originalSleep = Bun.sleep;
+		Bun.sleep = ((ms: number | Date) => {
+			if (typeof ms === "number") sleepCalls.push(ms);
+			return Promise.resolve();
+		}) as typeof Bun.sleep;
+
+		try {
+			await captureStdout(() => coordinatorCommand(["start"], deps));
+		} finally {
+			Bun.sleep = originalSleep;
+		}
+
+		// The 500ms shell init delay should appear in the sleep calls
+		expect(sleepCalls).toContain(500);
+	});
+
 	test("throws AgentError when tmux is not available", async () => {
 		const { deps } = makeDeps({}, undefined, undefined, {
 			ensureTmuxAvailableError: new AgentError(

@@ -862,7 +862,13 @@ export async function slingCommand(taskId: string, opts: SlingOptions): Promise<
 			runStore.close();
 		}
 
-		// 13b. Wait for Claude Code TUI to render before sending input.
+		// 13b. Give slow shells time to finish initializing before polling for TUI readiness.
+		const shellDelay = config.runtime?.shellInitDelayMs ?? 0;
+		if (shellDelay > 0) {
+			await Bun.sleep(shellDelay);
+		}
+
+		// Wait for Claude Code TUI to render before sending input.
 		// Polling capture-pane is more reliable than a fixed sleep because
 		// TUI init time varies by machine load and model state.
 		await waitForTuiReady(tmuxSessionName, (content) => runtime.detectReady(content));

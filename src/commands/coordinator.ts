@@ -413,6 +413,12 @@ async function startCoordinator(
 
 		store.upsert(session);
 
+		// Give slow shells time to finish initializing before polling for TUI readiness.
+		const shellDelay = config.runtime?.shellInitDelayMs ?? 0;
+		if (shellDelay > 0) {
+			await Bun.sleep(shellDelay);
+		}
+
 		// Wait for Claude Code TUI to render before sending input
 		const tuiReady = await tmux.waitForTuiReady(tmuxSession, (content) =>
 			runtime.detectReady(content),
