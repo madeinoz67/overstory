@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-03-04
+
+### Added
+
+#### RuntimeConnection Registry
+- **`src/runtimes/connections.ts`** — module-level connection registry for active `RuntimeConnection` instances, tracking RPC connections to headless agent processes (e.g., Sapling) keyed by agent name
+- `getConnection()`, `setConnection()`, `removeConnection()` for lifecycle management with automatic `close()` on removal
+- 6 tests in `src/runtimes/connections.test.ts`
+
+#### Sapling RPC Enhancements
+- **RuntimeConnection for SaplingRuntime** — full RPC support enabling direct stdin/stdout communication with Sapling agent processes
+- Model alias resolution in `buildEnv()` and `buildDirectSpawn()` — expands `sonnet`/`opus`/`haiku` aliases correctly
+
+### Fixed
+
+- **Headless backpressure zombie** — `ov sling` now redirects headless agent stdout/stderr to log files to prevent backpressure from causing zombie processes
+- **`deployConfig` guard write** — always writes `guards.json` even when overlay is undefined, preventing missing guard files for headless runtimes
+- **Sapling model alias resolution** — correct alias expansion in both `buildEnv()` and `buildDirectSpawn()` paths
+
+### Testing
+
+- 3116 tests across 96 files (7373 `expect()` calls)
+
 ## [0.8.1] - 2026-03-04
 
 ### Added
@@ -1356,7 +1379,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Biome configuration for formatting and linting
 - TypeScript strict mode with `noUncheckedIndexedAccess`
 
-[Unreleased]: https://github.com/jayminwest/overstory/compare/v0.8.1...HEAD
+[Unreleased]: https://github.com/jayminwest/overstory/compare/v0.8.2...HEAD
+[0.8.2]: https://github.com/jayminwest/overstory/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/jayminwest/overstory/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/jayminwest/overstory/compare/v0.7.9...v0.8.0
 [0.7.9]: https://github.com/jayminwest/overstory/compare/v0.7.8...v0.7.9

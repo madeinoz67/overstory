@@ -130,6 +130,7 @@ overstory/                        # This repo (the overstory tool itself)
       codex.ts                    # OpenAI Codex runtime adapter (headless, OS-level sandbox)
       gemini.ts                   # Gemini CLI runtime adapter (Google's gemini coding agent)
       sapling.ts                  # Sapling runtime adapter (headless coding agent)
+      connections.ts              # Module-level RuntimeConnection registry for RPC agents
     mulch/
       client.ts                   # mulch client (programmatic API for record/search/query, CLI wrapper for rest)
     merge/
