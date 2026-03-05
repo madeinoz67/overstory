@@ -764,7 +764,7 @@ describe("inspectCommand", () => {
 		): Promise<void> {
 			const logDir = join(overstoryDir, "logs", agentName, "2026-03-05T14-30-00-000Z");
 			await mkdir(logDir, { recursive: true });
-			const ndjson = events.map((e) => JSON.stringify(e)).join("\n") + "\n";
+			const ndjson = `${events.map((e) => JSON.stringify(e)).join("\n")}\n`;
 			await Bun.write(join(logDir, "stdout.log"), ndjson);
 		}
 
@@ -1107,7 +1107,7 @@ describe("inspectCommand", () => {
 			];
 			await Bun.write(
 				join(newDir, "stdout.log"),
-				events.map((e) => JSON.stringify(e)).join("\n") + "\n",
+				`${events.map((e) => JSON.stringify(e)).join("\n")}\n`,
 			);
 
 			const data = await gatherInspectData(tempDir, "stdout-multi-dir", { noTmux: true });
