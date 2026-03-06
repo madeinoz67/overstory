@@ -23,8 +23,8 @@ import type { AgentSession } from "../types.ts";
 import {
 	askCoordinator,
 	buildCoordinatorBeacon,
-	checkComplete,
 	type CoordinatorDeps,
+	checkComplete,
 	coordinatorCommand,
 	createCoordinatorCommand,
 	resolveAttach,
@@ -2383,6 +2383,138 @@ describe("checkComplete", () => {
 		expect(result.triggers.onShutdownSignal.met).toBe(true);
 		// Both must be met → false
 		expect(result.complete).toBe(false);
+	});
+
+	test("allAgentsDone false when merge queue has pending branches", async () => {
+		await Bun.write(
+			join(overstoryDir, "config.yaml"),
+			[
+				"project:",
+				"  name: test-project",
+				`  root: ${tempDir}`,
+				"  canonicalBranch: main",
+				"coordinator:",
+				"  exitTriggers:",
+				"    allAgentsDone: true",
+				"    taskTrackerEmpty: false",
+				"    onShutdownSignal: false",
+			].join("\n"),
+		);
+
+		const runId = `run-${Date.now()}`;
+		await Bun.write(join(overstoryDir, "current-run.txt"), runId);
+
+		// All agent sessions completed
+		const store = createSessionStore(join(overstoryDir, "sessions.db"));
+		try {
+			store.upsert({
+				id: "s1",
+				agentName: "lead-1",
+				capability: "lead",
+				worktreePath: tempDir,
+				branchName: "overstory/lead-1/task-1",
+				taskId: "task-1",
+				tmuxSession: "tmux-1",
+				state: "completed",
+				pid: null,
+				parentAgent: "coordinator",
+				depth: 1,
+				runId,
+				startedAt: new Date().toISOString(),
+				lastActivity: new Date().toISOString(),
+				escalationLevel: 0,
+				stalledSince: null,
+				transcriptPath: null,
+			});
+		} finally {
+			store.close();
+		}
+
+		// Merge queue has a pending entry — lead branch not yet merged
+		const { createMergeQueue } = await import("../merge/queue.ts");
+		const queue = createMergeQueue(join(overstoryDir, "merge-queue.db"));
+		try {
+			queue.enqueue({
+				branchName: "overstory/lead-1/task-1",
+				taskId: "task-1",
+				agentName: "lead-1",
+				filesModified: ["src/foo.ts"],
+			});
+		} finally {
+			queue.close();
+		}
+
+		const result = await checkComplete({ json: false });
+		expect(result.triggers.allAgentsDone.enabled).toBe(true);
+		expect(result.triggers.allAgentsDone.met).toBe(false);
+		expect(result.triggers.allAgentsDone.detail).toInclude("pending merge");
+		expect(result.triggers.allAgentsDone.detail).toInclude("overstory/lead-1/task-1");
+		expect(result.complete).toBe(false);
+	});
+
+	test("allAgentsDone true when all agents completed and merge queue is empty", async () => {
+		await Bun.write(
+			join(overstoryDir, "config.yaml"),
+			[
+				"project:",
+				"  name: test-project",
+				`  root: ${tempDir}`,
+				"  canonicalBranch: main",
+				"coordinator:",
+				"  exitTriggers:",
+				"    allAgentsDone: true",
+				"    taskTrackerEmpty: false",
+				"    onShutdownSignal: false",
+			].join("\n"),
+		);
+
+		const runId = `run-${Date.now()}`;
+		await Bun.write(join(overstoryDir, "current-run.txt"), runId);
+
+		const store = createSessionStore(join(overstoryDir, "sessions.db"));
+		try {
+			store.upsert({
+				id: "s1",
+				agentName: "lead-1",
+				capability: "lead",
+				worktreePath: tempDir,
+				branchName: "overstory/lead-1/task-1",
+				taskId: "task-1",
+				tmuxSession: "tmux-1",
+				state: "completed",
+				pid: null,
+				parentAgent: "coordinator",
+				depth: 1,
+				runId,
+				startedAt: new Date().toISOString(),
+				lastActivity: new Date().toISOString(),
+				escalationLevel: 0,
+				stalledSince: null,
+				transcriptPath: null,
+			});
+		} finally {
+			store.close();
+		}
+
+		// Merge queue exists but all entries are already merged (no pending)
+		const { createMergeQueue } = await import("../merge/queue.ts");
+		const queue = createMergeQueue(join(overstoryDir, "merge-queue.db"));
+		try {
+			const entry = queue.enqueue({
+				branchName: "overstory/lead-1/task-1",
+				taskId: "task-1",
+				agentName: "lead-1",
+				filesModified: ["src/foo.ts"],
+			});
+			queue.updateStatus(entry.branchName, "merged", "clean-merge");
+		} finally {
+			queue.close();
+		}
+
+		const result = await checkComplete({ json: false });
+		expect(result.triggers.allAgentsDone.enabled).toBe(true);
+		expect(result.triggers.allAgentsDone.met).toBe(true);
+		expect(result.complete).toBe(true);
 	});
 
 	test("command registration — createCoordinatorCommand has check-complete subcommand", () => {

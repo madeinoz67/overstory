@@ -1111,13 +1111,37 @@ export async function checkComplete(
 			try {
 				const sessions = store.getByRun(runId);
 				const agentSessions = sessions.filter((s) => s.capability !== "coordinator");
-				const allDone =
+				let allDone =
 					agentSessions.length > 0 && agentSessions.every((s) => s.state === "completed");
-				result.triggers.allAgentsDone.met = allDone;
 				const states = agentSessions.map((s) => `${s.agentName}:${s.state}`);
-				result.triggers.allAgentsDone.detail = allDone
-					? `All ${agentSessions.length} agents completed`
-					: states.join(", ");
+
+				// Also check the merge queue — agents may be "completed" but branches
+				// not yet merged. This prevents premature issue closure when a builder
+				// finishes but its lead hasn't merged yet (overstory-5c08).
+				if (allDone) {
+					const mergeQueuePath = join(config.project.root, ".overstory", "merge-queue.db");
+					const mergeQueueFile = Bun.file(mergeQueuePath);
+					if (await mergeQueueFile.exists()) {
+						const { createMergeQueue } = await import("../merge/queue.ts");
+						const queue = createMergeQueue(mergeQueuePath);
+						try {
+							const pending = queue.list("pending");
+							if (pending.length > 0) {
+								allDone = false;
+								result.triggers.allAgentsDone.detail = `${pending.length} branch(es) pending merge: ${pending.map((e) => e.branchName).join(", ")}`;
+							}
+						} finally {
+							queue.close();
+						}
+					}
+				}
+
+				result.triggers.allAgentsDone.met = allDone;
+				if (result.triggers.allAgentsDone.detail === "") {
+					result.triggers.allAgentsDone.detail = allDone
+						? `All ${agentSessions.length} agents completed`
+						: states.join(", ");
+				}
 			} finally {
 				store.close();
 			}
