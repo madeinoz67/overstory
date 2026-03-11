@@ -68,6 +68,8 @@ export interface OverstoryConfig {
 		root: string; // Absolute path to target repo
 		canonicalBranch: string; // "main" | "develop"
 		qualityGates?: QualityGate[];
+		/** Default canopy profile name. Used when --profile is not explicitly passed to sling/coordinator. */
+		defaultProfile?: string;
 	};
 	agents: {
 		manifestPath: string; // Path to agent-manifest.json

@@ -286,6 +286,7 @@ program
 	.option("--dispatch-max-agents <n>", "Per-lead max agents ceiling (injected into overlay)")
 	.option("--runtime <name>", "Runtime adapter (default: config or claude)")
 	.option("--base-branch <branch>", "Base branch for worktree creation (default: current HEAD)")
+	.option("--profile <name>", "Canopy profile to apply to agent overlay")
 	.option("--json", "Output result as JSON")
 	.action(async (taskId, opts) => {
 		await slingCommand(taskId, opts);

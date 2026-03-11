@@ -291,7 +291,7 @@ export function resolveAttach(args: string[], isTTY: boolean): boolean {
 }
 
 async function startCoordinator(
-	opts: { json: boolean; attach: boolean; watchdog: boolean; monitor: boolean },
+	opts: { json: boolean; attach: boolean; watchdog: boolean; monitor: boolean; profile?: string },
 	deps: CoordinatorDeps = {},
 ): Promise<void> {
 	const tmux = deps._tmux ?? {
@@ -304,7 +304,7 @@ async function startCoordinator(
 		ensureTmuxAvailable,
 	};
 
-	const { json, attach: shouldAttach, watchdog: watchdogFlag, monitor: monitorFlag } = opts;
+	const { json, attach: shouldAttach, watchdog: watchdogFlag, monitor: monitorFlag, profile: profileFlag } = opts;
 
 	if (isRunningAsRoot()) {
 		throw new AgentError(
@@ -417,11 +417,13 @@ async function startCoordinator(
 			env: {
 				...runtime.buildEnv(resolvedModel),
 				OVERSTORY_AGENT_NAME: COORDINATOR_NAME,
+				...(profileFlag ? { OVERSTORY_PROFILE: profileFlag } : {}),
 			},
 		});
 		const pid = await tmux.createSession(tmuxSession, projectRoot, spawnCmd, {
 			...runtime.buildEnv(resolvedModel),
 			OVERSTORY_AGENT_NAME: COORDINATOR_NAME,
+			...(profileFlag ? { OVERSTORY_PROFILE: profileFlag } : {}),
 		});
 
 		// Create a run for this coordinator session BEFORE recording the session,
@@ -1255,9 +1257,10 @@ export function createCoordinatorCommand(deps: CoordinatorDeps = {}): Command {
 		.option("--no-attach", "Never attach to tmux session after start")
 		.option("--watchdog", "Auto-start watchdog daemon with coordinator")
 		.option("--monitor", "Auto-start Tier 2 monitor agent with coordinator")
+		.option("--profile <name>", "Canopy profile to apply to spawned agents")
 		.option("--json", "Output as JSON")
 		.action(
-			async (opts: { attach?: boolean; watchdog?: boolean; monitor?: boolean; json?: boolean }) => {
+			async (opts: { attach?: boolean; watchdog?: boolean; monitor?: boolean; json?: boolean; profile?: string }) => {
 				// opts.attach = true if --attach, false if --no-attach, undefined if neither
 				const shouldAttach = opts.attach !== undefined ? opts.attach : !!process.stdout.isTTY;
 				await startCoordinator(
@@ -1266,6 +1269,7 @@ export function createCoordinatorCommand(deps: CoordinatorDeps = {}): Command {
 						attach: shouldAttach,
 						watchdog: opts.watchdog ?? false,
 						monitor: opts.monitor ?? false,
+						profile: opts.profile,
 					},
 					deps,
 				);
