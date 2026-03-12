@@ -16,6 +16,7 @@ import { createCompletionsCommand } from "./commands/completions.ts";
 import { createCoordinatorCommand } from "./commands/coordinator.ts";
 import { createCostsCommand } from "./commands/costs.ts";
 import { createDashboardCommand } from "./commands/dashboard.ts";
+import { createDiscoverCommand } from "./commands/discover.ts";
 import { createDoctorCommand } from "./commands/doctor.ts";
 import { createEcosystemCommand } from "./commands/ecosystem.ts";
 import { createErrorsCommand } from "./commands/errors.ts";
@@ -76,6 +77,7 @@ const COMMANDS = [
 	"stop",
 	"status",
 	"dashboard",
+	"discover",
 	"inspect",
 	"clean",
 	"doctor",
@@ -329,6 +331,8 @@ program
 program.addCommand(createStatusCommand());
 
 program.addCommand(createDashboardCommand());
+
+program.addCommand(createDiscoverCommand());
 
 program.addCommand(createInspectCommand());
 
